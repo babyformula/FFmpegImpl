@@ -1,4 +1,5 @@
 #include "../include/FFmpegH264Encoder.h"
+#include "../include/FFmpegDecoder.h"
 
 namespace YEAH
 {
@@ -7,6 +8,11 @@ namespace YEAH
         pthread_mutex_init(&inqueue_mutex,NULL);
         pthread_mutex_init(&outqueue_mutex,NULL);
 
+        std::function<void()> callback1 = std::bind(&FFmpegDecoder::onFrame, this);
+    }
+
+    FFmpegH264Encoder::~FFmpegH264Encoder()
+    {
     }
 
     void FFmpegH264Encoder::setCallbackFunctionFrameIsReady(std::function<void()> func)

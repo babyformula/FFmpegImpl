@@ -1,5 +1,4 @@
 #include "../include/FFmpegDecoder.h"
-#include <opencv2/opencv.hpp>
 
 namespace YEAH
 {
@@ -49,16 +48,16 @@ namespace YEAH
                     videoStream = i;
 
             // print input video stream informataion
-            std::cout
-                    << "infile: " << filenameSrc << "\n"
-                    << "format: " << pFormatCtx->iformat->name << "\n"
-
-                    << "size:   " << st->codecpar->width << 'x' << st->codecpar->height << "\n"
-                    << "fps:    " << av_q2d(st->avg_frame_rate) << " [fps]\n"
-                    << "length: " << av_rescale_q(st->duration, st->time_base, {1,1000}) / 1000. << " [sec]\n"
-                    << "pixfmt: " << st->codecpar->format << "\n"
-                    << "frame:  " << st->nb_frames << "\n"
-                    << std::flush;
+//            std::cout
+//                    << "infile: " << filenameSrc << "\n"
+//                    << "format: " << pFormatCtx->iformat->name << "\n"
+//
+//                    << "size:   " << st->codecpar->width << 'x' << st->codecpar->height << "\n"
+//                    << "fps:    " << av_q2d(st->avg_frame_rate) << " [fps]\n"
+//                    << "length: " << av_rescale_q(st->duration, st->time_base, {1,1000}) / 1000. << " [sec]\n"
+//                    << "pixfmt: " << st->codecpar->format << "\n"
+//                    << "frame:  " << st->nb_frames << "\n"
+//                    << std::flush;
         }
 
         videoStream = av_find_best_stream(pFormatCtx, AVMEDIA_TYPE_VIDEO,videoStream, -1, NULL, 0);

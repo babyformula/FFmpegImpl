@@ -10,11 +10,17 @@ int HTTPTunnelPort;
 pthread_t thread1;
 pthread_t thread2;
 
+void * runEncoder(void * encoder)
+{
+    ((YEAH::FFmpegH264Encoder * ) encoder)->run();
+    pthread_exit(NULL);
+}
+
 void onFrame(uint8_t * data, int height, int width)
 {
-    cv::Mat ret_img(height, width, CV_8UC3, data);
-    cv::imshow("RGBFrame", ret_img);
-    cv::waitKey();
+//    cv::Mat ret_img(height, width, CV_8UC3, data);
+//    cv::imshow("RGBFrame", ret_img);
+//    cv::waitKey(2);
 
     encoder->SendNewFrame(data);
 }
@@ -28,10 +34,18 @@ int main(int argc, const char * argv[])
     if(argc==4)
         HTTPTunnelPort = atoi(argv[3]);
 
-    decoder = new YEAH::FFmpegDecoder("/Volumes/G_DRIVE_mobile_SSD_R_Series/lastvideos/0A852916-5E66-5E67-3DFB-365779372B0D20181123_h265.mp4");
+    decoder = new YEAH::FFmpegDecoder("/Volumes/G_DRIVE_mobile_SSD_R_Series/lastvideos/0B505D73-63A6-AA14-E610-127BF0B55D2620181129_C2.flv");
     decoder->initialize();
-    decoder->height;
     decoder->setOnframeCallbackFunction(onFrame);
+
+    // DEBUG
+    std::cout
+    << "height:     " << decoder->height << "\n"
+    << "width:      " << decoder->width << "\n"
+    << "frameRate:  " << decoder->frameRate << "\n"
+    << "bitrate:    " << decoder->bitrate << " [fps]\n"
+    << "GOP:        " << decoder->GOP << " [sec]\n"
+    << std::flush;
 
     encoder = new YEAH::FFmpegH264Encoder();
     encoder->SetupVideo("dummy.avi",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
@@ -47,15 +61,15 @@ int main(int argc, const char * argv[])
 //        return -1;
 //    }
 //
-//    pthread_attr_t attr2;
-//    pthread_attr_init(&attr2);
-//    pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
-//    int rc2 = pthread_create(&thread2, &attr2, runEncoder, encoder);
-//
-//    if (rc2){
-//        //exception
-//        return -1;
-//    }
+    pthread_attr_t attr2;
+    pthread_attr_init(&attr2);
+    pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
+    int rc2 = pthread_create(&thread2, &attr2, runEncoder, encoder);
+
+    if (rc2){
+        //exception
+        return -1;
+    }
 
     // Play Media Here
     decoder->playMedia();
