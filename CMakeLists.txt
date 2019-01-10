@@ -30,19 +30,23 @@ find_library(AVDEVICE_LIBRARY avdevice)
 find_path(SWSCALE_INCLUDE_DIR libswscale/swscale.h)
 find_library(SWSCALE_LIBRARY swscale)
 
-message(STATUS "liveMedia library status:")
+message(STATUS "AVCODEC library status:")
 message(STATUS "    libraries: ${AVCODEC_LIBRARY}")
 message(STATUS "    include path: ${AVCODEC_INCLUDE_DIR}")
 
-message(STATUS "groupsock library status:")
+message(STATUS "AVFORMAT library status:")
 message(STATUS "    libraries: ${AVFORMAT_LIBRARY}")
 message(STATUS "    include path: ${AVFORMAT_INCLUDE_DIR}")
 
-message(STATUS "UsageEnvironment library status:")
+message(STATUS "AVUTIL library status:")
 message(STATUS "    libraries: ${AVUTIL_LIBRARY}")
 message(STATUS "    include path: ${AVUTIL_INCLUDE_DIR}")
 
-message(STATUS "BasicUsageEnvironment library status:")
+message(STATUS "AVDEVICE library status:")
+message(STATUS "    libraries: ${AVDEVICE_LIBRARY}")
+message(STATUS "    include path: ${AVDEVICE_INCLUDE_DIR}")
+
+message(STATUS "SWSCALE library status:")
 message(STATUS "    libraries: ${SWSCALE_LIBRARY}")
 message(STATUS "    include path: ${SWSCALE_INCLUDE_DIR}")
 
