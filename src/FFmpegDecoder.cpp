@@ -105,7 +105,7 @@ namespace YEAH
 
     }
 
-    void FFmpegDecoder::setOnframeCallbackFunction(std::function<void(uint8_t *)> func)
+    void FFmpegDecoder::setOnframeCallbackFunction(std::function<void(uint8_t *, int, int)> func)
     {
         onFrame = func;
     }
@@ -126,7 +126,7 @@ namespace YEAH
                 if(frameFinished)
                 {
                     sws_scale(img_convert_ctx, ((AVPicture*)pFrame)->data, ((AVPicture*)pFrame)->linesize, 0, pCodecCtx->height, ((AVPicture *)pFrameRGB)->data, ((AVPicture *)pFrameRGB)->linesize);
-                    onFrame(((AVPicture *)pFrameRGB)->data[0]);
+                    onFrame(((AVPicture *)pFrameRGB)->data[0], pCodecCtx->height, pCodecCtx->width);
                 }
                 av_frame_unref(pFrame);
                 av_free(pFrame);

@@ -27,7 +27,7 @@ namespace YEAH
 
         void finalize();
 
-        void setOnframeCallbackFunction(std::function<void(uint8_t *)> func);
+        void setOnframeCallbackFunction(std::function<void(uint8_t *, int, int)> func);
 
         int width;
 
@@ -39,7 +39,7 @@ namespace YEAH
 
         int bitrate;
 
-        std::function<void(uint8_t *)> onFrame;
+        std::function<void(uint8_t *, int, int)> onFrame;
 
     private:
 

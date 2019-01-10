@@ -10,9 +10,9 @@ int HTTPTunnelPort;
 pthread_t thread1;
 pthread_t thread2;
 
-void onFrame(uint8_t * data)
+void onFrame(uint8_t * data, int height, int width)
 {
-    cv::Mat ret_img(1040, 712, CV_8UC3, data);
+    cv::Mat ret_img(height, width, CV_8UC3, data);
     cv::imshow("RGBFrame", ret_img);
     cv::waitKey();
 
@@ -30,6 +30,7 @@ int main(int argc, const char * argv[])
 
     decoder = new YEAH::FFmpegDecoder("/Volumes/G_DRIVE_mobile_SSD_R_Series/lastvideos/0A852916-5E66-5E67-3DFB-365779372B0D20181123_h265.mp4");
     decoder->initialize();
+    decoder->height;
     decoder->setOnframeCallbackFunction(onFrame);
 
     encoder = new YEAH::FFmpegH264Encoder();
