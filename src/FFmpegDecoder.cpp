@@ -47,7 +47,7 @@ namespace YEAH
                 if (avformat_match_stream_specifier(pFormatCtx, st, "vst") > 0)
                     videoStream = i;
 
-            // print input video stream informataion
+//            DEBUG print input video stream informataion
 //            std::cout
 //                    << "infile: " << filenameSrc << "\n"
 //                    << "format: " << pFormatCtx->iformat->name << "\n"

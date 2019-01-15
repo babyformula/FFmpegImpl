@@ -13,14 +13,15 @@ pthread_t thread2;
 void * runEncoder(void * encoder)
 {
     ((YEAH::FFmpegH264Encoder * ) encoder)->run();
+    ((YEAH::FFmpegH264Encoder * ) encoder)->CloseVideo();
     pthread_exit(NULL);
 }
 
-void onFrame(uint8_t * data, int height, int width)
+void onFrameMain(uint8_t * data, int height, int width)
 {
 //    cv::Mat ret_img(height, width, CV_8UC3, data);
 //    cv::imshow("RGBFrame", ret_img);
-//    cv::waitKey(2);
+//    cv::waitKey();
 
     encoder->SendNewFrame(data);
 }
@@ -34,17 +35,17 @@ int main(int argc, const char * argv[])
     if(argc==4)
         HTTPTunnelPort = atoi(argv[3]);
 
-    decoder = new YEAH::FFmpegDecoder("/Volumes/G_DRIVE_mobile_SSD_R_Series/lastvideos/0B505D73-63A6-AA14-E610-127BF0B55D2620181129_C2.flv");
+    decoder = new YEAH::FFmpegDecoder("/Users/spectrum/Desktop/0A852916-5E66-5E67-3DFB-365779372B0D20181123_h265.mp4");
     decoder->initialize();
-    decoder->setOnframeCallbackFunction(onFrame);
+    decoder->setOnframeCallbackFunction(onFrameMain);
 
     // DEBUG
     std::cout
     << "height:     " << decoder->height << "\n"
     << "width:      " << decoder->width << "\n"
-    << "frameRate:  " << decoder->frameRate << "\n"
-    << "bitrate:    " << decoder->bitrate << " [fps]\n"
-    << "GOP:        " << decoder->GOP << " [sec]\n"
+    << "frameRate:  " << decoder->frameRate << " [fps]\n"
+    << "bitrate:    " << decoder->bitrate << " [bps]\n"
+    << "GOP:        " << decoder->GOP << " \n"
     << std::flush;
 
     encoder = new YEAH::FFmpegH264Encoder();

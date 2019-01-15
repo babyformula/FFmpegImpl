@@ -1,5 +1,6 @@
 #include "../include/FFmpegH264Encoder.h"
 #include "../include/FFmpegDecoder.h"
+#include <opencv2/opencv.hpp>
 
 namespace YEAH
 {
@@ -8,7 +9,7 @@ namespace YEAH
         pthread_mutex_init(&inqueue_mutex,NULL);
         pthread_mutex_init(&outqueue_mutex,NULL);
 
-        std::function<void()> callback1 = std::bind(&FFmpegDecoder::onFrame, this);
+        //std::function<void()> callback1 = std::bind(&FFmpegDecoder::onFrame, this);
     }
 
     FFmpegH264Encoder::~FFmpegH264Encoder()
@@ -171,7 +172,7 @@ namespace YEAH
                   m_src_picture->data, m_src_picture->linesize,
                   0, m_c->height, m_dst_picture->data, m_dst_picture->linesize);
 
-
+ 
         AVPacket pkt = { 0 };
         int got_packet;
         av_init_packet(&pkt);
@@ -214,7 +215,7 @@ namespace YEAH
         m_frame_count++;
         m_dst_picture->pts += av_rescale_q(1, m_video_st->codec->time_base, m_video_st->time_base);
 
-        onFrame();
+        //onFrame();
     }
 
     void FFmpegH264Encoder::SetupVideo(std::string filename, int Width, int Height, int FPS, int GOB, int BitPerSecond)
