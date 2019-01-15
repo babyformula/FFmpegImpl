@@ -48,6 +48,7 @@ namespace YEAH
 
         void SendNewFrame(uint8_t * RGBFrame);
         void WriteFrame(uint8_t * RGBFrame);
+        void WriteVideo(uint8_t * RGBFrame);
         char ReleaseFrame();
 
         void run();

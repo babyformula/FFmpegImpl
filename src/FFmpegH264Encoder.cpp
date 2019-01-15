@@ -89,6 +89,8 @@ namespace YEAH
         }
 
         st->id = m_oc->nb_streams-1;
+        st->time_base.den = m_AVIMOV_FPS;
+        st->time_base.num = 1;
 
         m_c = st->codec;
 
@@ -96,8 +98,8 @@ namespace YEAH
         m_c->bit_rate = m_AVIMOV_BPS;			//Bits Per Second
         m_c->width    = m_AVIMOV_WIDTH;			//Note Resolution must be a multiple of 2!!
         m_c->height   = m_AVIMOV_HEIGHT;		//Note Resolution must be a multiple of 2!!
-        m_c->time_base.den = m_AVIMOV_FPS;		//Frames per second
-        m_c->time_base.num = 1;
+//        m_c->time_base.den = m_AVIMOV_FPS;        //Frames per second
+//        m_c->time_base.num = 1;
         m_c->gop_size      = m_AVIMOV_GOB;		// Intra frames per x P frames
         m_c->pix_fmt       = AV_PIX_FMT_YUV420P;//Do not change this, H264 needs YUV format not RGB
 
@@ -216,6 +218,29 @@ namespace YEAH
         m_dst_picture->pts += av_rescale_q(1, m_video_st->codec->time_base, m_video_st->time_base);
 
         //onFrame();
+    }
+    
+    void FFmpegH264Encoder::WriteVideo(uint8_t * RGBFrame)
+    {
+        AVOutputFormat *o_fmt = m_oc->oformat;
+        if (pkt.stream_index == 0) {
+            AVPacket fpkt = pkt;
+            int a = av_bitstream_filter_filter(filter,
+                                               out_stream->codec, NULL, &fpkt.data, &fpkt.size,
+                                               pkt.data, pkt.size, pkt.flags & AV_PKT_FLAG_KEY);
+            pkt.data = fpkt.data;
+            pkt.size = fpkt.size;
+        }
+        
+        pkt.pts = av_rescale_q_rnd(pkt.pts, m_video_st->codec->time_base, m_video_st->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+        pkt.dts = av_rescale_q_rnd(pkt.dts, m_video_st->codec->time_base, m_video_st->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+        pkt.duration = av_rescale_q(pkt.duration, m_video_st->codec->time_base, m_video_st->time_base);
+        pkt.pos = -1;
+        
+        if (av_interleaved_write_frame(m_oc, &pkt) < 0) {
+            printf( "Error muxing packets");
+            return;
+        }
     }
 
     void FFmpegH264Encoder::SetupVideo(std::string filename, int Width, int Height, int FPS, int GOB, int BitPerSecond)

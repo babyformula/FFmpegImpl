@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 add_executable(FFmpegImpl main.cpp src/FFmpegDecoder.cpp include/FFmpegDecoder.h src/FFmpegH264Encoder.cpp include/FFmpegH264Encoder.h)
 
-find_package(OpenCV 3.4.4 REQUIRED)
+find_package(OpenCV REQUIRED)
 message(STATUS "OpenCV library status:")
 message(STATUS "    version: ${OpenCV_VERSION}")
 message(STATUS "    libraries: ${OpenCV_LIBS}")

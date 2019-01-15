@@ -12,7 +12,7 @@ namespace YEAH
     {
 
         // Intialize FFmpeg enviroment
-
+        av_register_all();
         avdevice_register_all();
 
         avformat_network_init();
