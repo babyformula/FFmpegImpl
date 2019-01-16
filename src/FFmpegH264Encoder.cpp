@@ -134,7 +134,7 @@ namespace YEAH
         //ret = avpicture_alloc(&m_src_picture, AV_PIX_FMT_BGR24, c->width, c->height);
         m_src_picture = av_frame_alloc();
         m_src_picture->format = c->pix_fmt;
-        ret = av_image_alloc(m_src_picture->data, m_src_picture->linesize, c->width, c->height, AV_PIX_FMT_BGR24, 24);
+        ret = av_image_alloc(m_src_picture->data, m_src_picture->linesize, c->width, c->height, AV_PIX_FMT_YUV420P, 24);
 
         if (ret < 0) {
             return;
@@ -167,6 +167,68 @@ namespace YEAH
 
     void FFmpegH264Encoder::WriteFrame(uint8_t * RGBFrame )
     {
+        int picture_size;
+        int y_size;
+        int framecnt=0;
+        
+        AVPacket pkt;
+        
+        AVDictionary *param = 0;
+        //H.264
+        if(m_c->codec_id == AV_CODEC_ID_H264) {
+            av_dict_set(&param, "preset", "slow", 0);
+            av_dict_set(&param, "tune", "zerolatency", 0);
+            //av_dict_set(&param, "profile", "main", 0);
+        }
+        //H.265
+        if(m_c->codec_id == AV_CODEC_ID_H265){
+            av_dict_set(&param, "preset", "ultrafast", 0);
+            av_dict_set(&param, "tune", "zero-latency", 0);
+        }
+        
+        //m_video_codec = avcodec_find_encoder(m_c->codec_id);
+        if (!m_video_codec){
+            printf("Can not find encoder! \n");
+            return -1;
+        }
+        if (avcodec_open2(m_c, m_video_codec, &param) < 0){
+            printf("Failed to open encoder! \n");
+            return -1;
+        }
+        
+        m_frame = av_frame_alloc();
+        picture_size = avpicture_get_size(m_c->pix_fmt, m_c->width, m_c->height);
+        avpicture_fill((AVPicture *)m_frame, RGBFrame, m_c->pix_fmt, m_c->width, m_c->height);
+        
+        //Write File Header
+        av_new_packet(&pkt,picture_size);
+        
+        y_size = m_c->width * m_c->height;
+        
+        m_frame->width = m_c->width;
+        m_frame->height = m_c->height;
+        m_frame->format = m_video_st->codec->pix_fmt;
+        m_dst_picture->height = m_c->height;
+        m_frame->data[0] = RGBFrame;              // Y
+        m_frame->data[1] = RGBFrame+ y_size;      // U
+        m_frame->data[2] = RGBFrame+ y_size*5/4;  // V
+        //PTS
+        //pFrame->pts=i;
+        m_frame->pts=m_frame_count*(m_video_st->time_base.den)/((m_video_st->time_base.num)*25);
+        int got_picture=0;
+        //Encode
+        int ret = avcodec_encode_video2(m_c, &pkt,m_frame, &got_picture);
+        if(ret < 0){
+            printf("Failed to encode! \n");
+            return -1;
+        }
+        if (got_picture==1){
+            printf("Succeed to encode frame: %5d\tsize:%5d\n",framecnt,pkt.size);
+            framecnt++;
+            pkt.stream_index = m_video_st->index;
+            ret = av_write_frame(m_oc, &pkt);
+            av_free_packet(&pkt);
+        }
 
         memcpy(m_src_picture->data[0], RGBFrame, bufferSize);
 
@@ -175,11 +237,11 @@ namespace YEAH
                   0, m_c->height, m_dst_picture->data, m_dst_picture->linesize);
 
  
-        AVPacket pkt = { 0 };
+        //AVPacket pkt = { 0 };
         int got_packet;
         av_init_packet(&pkt);
 
-        int ret = 0;
+        ret = 0;
 
         ret = avcodec_encode_video2(m_c, &pkt, m_dst_picture, &got_packet);
 
@@ -220,29 +282,6 @@ namespace YEAH
         //onFrame();
     }
     
-    void FFmpegH264Encoder::WriteVideo(uint8_t * RGBFrame)
-    {
-        AVOutputFormat *o_fmt = m_oc->oformat;
-        if (pkt.stream_index == 0) {
-            AVPacket fpkt = pkt;
-            int a = av_bitstream_filter_filter(filter,
-                                               out_stream->codec, NULL, &fpkt.data, &fpkt.size,
-                                               pkt.data, pkt.size, pkt.flags & AV_PKT_FLAG_KEY);
-            pkt.data = fpkt.data;
-            pkt.size = fpkt.size;
-        }
-        
-        pkt.pts = av_rescale_q_rnd(pkt.pts, m_video_st->codec->time_base, m_video_st->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-        pkt.dts = av_rescale_q_rnd(pkt.dts, m_video_st->codec->time_base, m_video_st->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-        pkt.duration = av_rescale_q(pkt.duration, m_video_st->codec->time_base, m_video_st->time_base);
-        pkt.pos = -1;
-        
-        if (av_interleaved_write_frame(m_oc, &pkt) < 0) {
-            printf( "Error muxing packets");
-            return;
-        }
-    }
-
     void FFmpegH264Encoder::SetupVideo(std::string filename, int Width, int Height, int FPS, int GOB, int BitPerSecond)
     {
         m_filename = filename;

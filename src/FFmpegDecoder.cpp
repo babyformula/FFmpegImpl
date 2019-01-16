@@ -87,14 +87,14 @@ namespace YEAH
         }
 
         pFrameRGB = av_frame_alloc();
-        AVPixelFormat  pFormat = AV_PIX_FMT_BGR24;
+        AVPixelFormat  pFormat = AV_PIX_FMT_YUV420P;
         uint8_t *fbuffer;
         int numBytes;
         numBytes = avpicture_get_size(pFormat,pCodecCtx->width,pCodecCtx->height) ; //AV_PIX_FMT_RGB24
         fbuffer = (uint8_t *) av_malloc(numBytes*sizeof(uint8_t));
         avpicture_fill((AVPicture *) pFrameRGB,fbuffer,pFormat,pCodecCtx->width,pCodecCtx->height);
 
-        img_convert_ctx = sws_getCachedContext(NULL,pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,   pCodecCtx->width, pCodecCtx->height, AV_PIX_FMT_BGR24, SWS_BICUBIC, NULL, NULL,NULL);
+        img_convert_ctx = sws_getCachedContext(NULL,pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,   pCodecCtx->width, pCodecCtx->height, AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL,NULL);
 
         height = pCodecCtx->height;
         width =  pCodecCtx->width;
