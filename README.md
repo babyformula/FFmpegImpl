@@ -6,7 +6,7 @@ FFmpeg decoding &amp; encoding
 (1) [FFmpeg](https://github.com/FFmpeg/FFmpeg). Specifically, `AVCODEC, AVFORMAT, AVUTIL, AVDEVICE, SWSCALE` libraries need to be compiled.<br>
 ```
 git clone https://github.com/FFmpeg/FFmpeg
-cd FFmpeg && ./configure
+cd FFmpeg && ./configure --enable-avcodec --enable-avformat --enable-avutil --enable-avdevice --enable-swscale 
 make -j8
 make install
 ```
