@@ -79,7 +79,8 @@ namespace YEAH
         AVOutputFormat *m_fmt;
         AVFormatContext *m_oc;
         AVCodec *m_video_codec;
-        AVFrame * m_src_picture, * m_dst_picture, * m_frame;
+        AVFrame * m_frame;
+        //AVFrame * m_src_picture, * m_dst_picture;
         SwsContext *sws_ctx;
         int bufferSize;
 

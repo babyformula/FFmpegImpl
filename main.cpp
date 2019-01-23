@@ -13,15 +13,15 @@ pthread_t thread2;
 void * runEncoder(void * encoder)
 {
     ((YEAH::FFmpegH264Encoder * ) encoder)->run();
-    ((YEAH::FFmpegH264Encoder * ) encoder)->CloseVideo();
     pthread_exit(NULL);
 }
 
 void onFrameMain(uint8_t * data, int height, int width)
 {
-//    cv::Mat ret_img(height, width, CV_8UC3, data);
+//    cv::Mat ret_img(height*3/2, width, CV_8UC1, data);
+//    cv::cvtColor(ret_img, ret_img, CV_YUV2BGR_I420);
 //    cv::imshow("RGBFrame", ret_img);
-//    cv::waitKey();
+//    cv::waitKey(20);
 
     encoder->SendNewFrame(data);
 }
@@ -35,7 +35,7 @@ int main(int argc, const char * argv[])
     if(argc==4)
         HTTPTunnelPort = atoi(argv[3]);
 
-    decoder = new YEAH::FFmpegDecoder("/Users/Spectrum/Pictures/0A852916-5E66-5E67-3DFB-365779372B0D20181123_h265.mp4");
+    decoder = new YEAH::FFmpegDecoder("/Users/spectrum/Pictures/0A852916-5E66-5E67-3DFB-365779372B0D20181123_h265.mp4");
     decoder->initialize();
     decoder->setOnframeCallbackFunction(onFrameMain);
 
@@ -49,7 +49,7 @@ int main(int argc, const char * argv[])
     << std::flush;
 
     encoder = new YEAH::FFmpegH264Encoder();
-    encoder->SetupVideo("dummy.avi",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
+    encoder->SetupVideo("dummy.mp4",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
 //    server = new YEAH::LiveRTSPServer(encoder, UDPPort, HTTPTunnelPort);
 //
 //    pthread_attr_t attr1;
@@ -74,7 +74,9 @@ int main(int argc, const char * argv[])
 
     // Play Media Here
     decoder->playMedia();
-
+    
+    encoder->CloseVideo();
+    
     decoder->finalize();
 
 

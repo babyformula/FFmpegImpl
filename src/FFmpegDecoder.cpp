@@ -141,7 +141,11 @@ namespace YEAH
     void FFmpegDecoder::finalize()
     {
         sws_freeContext(img_convert_ctx);
-        av_freep(&(pFrameRGB->data[0]));
+        if (pFrameRGB->data[0] != NULL)
+//        {
+//            std::cout >> &(pFrameRGB->data[0]) >> std::endl;
+//            av_freep(&(pFrameRGB->data[0]));
+//        }
         av_frame_unref(pFrameRGB);
         av_free(pFrameRGB);
         avcodec_close(pCodecCtx);
