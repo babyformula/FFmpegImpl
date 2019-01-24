@@ -160,6 +160,23 @@ namespace YEAH
         if(m_c->codec_id == AV_CODEC_ID_H264) {
             av_dict_set(&param, "preset", "slow", 0);
             av_dict_set(&param, "tune", "zerolatency", 0);
+            av_dict_set(&param, "crf", "25", 0);
+            av_dict_set(&param, "me_method", "umh", 0);
+            av_dict_set(&param, "subq", "9", 0);
+            av_dict_set(&param, "chromaoffset", "-1", 0);
+            av_dict_set(&param, "threads", "24", 0);
+            av_dict_set(&param, "mbtree", "0", 0);
+            av_dict_set(&param, "keyint_min", "100", 0);
+            av_dict_set(&param, "refs", "5", 0);
+            av_dict_set(&param, "psy-rd", "1.5:0.96", 0);
+            av_dict_set(&param, "b-bias", "8", 0);
+            av_dict_set(&param, "b-pyramids", "none", 0);
+            av_dict_set(&param, "direct-pred", "3", 0);
+            av_dict_set(&param, "b_qfactor", "4", 0);
+            av_dict_set(&param, "aq-mode", "2", 0);
+            av_dict_set(&param, "aq-strength", "0.1", 0);
+            av_dict_set(&param, "partitions", "all", 0);
+            av_opt_set(m_c->priv_data, "x264opts", "bframes=3", 0);
             //av_dict_set(&param, "profile", "main", 0);
         }
         //H.265
@@ -207,7 +224,7 @@ namespace YEAH
         int ret = avcodec_encode_video2(m_c, &pkt,m_frame, &got_picture);
         if(ret < 0){
             printf("Failed to encode! \n");
-            return -1;
+            return;
         }
         if (got_picture==1){
             printf("Succeed to encode frame: %5d\tsize:%5d\n",framecnt,pkt.size);

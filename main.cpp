@@ -35,7 +35,7 @@ int main(int argc, const char * argv[])
     if(argc==4)
         HTTPTunnelPort = atoi(argv[3]);
 
-    decoder = new YEAH::FFmpegDecoder("/Users/spectrum/Pictures/0A852916-5E66-5E67-3DFB-365779372B0D20181123_h265.mp4");
+    decoder = new YEAH::FFmpegDecoder("/Users/spectrum/Downloads/m1.mp4");
     decoder->initialize();
     decoder->setOnframeCallbackFunction(onFrameMain);
 
