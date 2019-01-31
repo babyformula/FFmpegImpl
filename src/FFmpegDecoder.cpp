@@ -46,18 +46,6 @@ namespace YEAH
             if (videoStream == -1)
                 if (avformat_match_stream_specifier(pFormatCtx, st, "vst") > 0)
                     videoStream = i;
-
-//            DEBUG print input video stream informataion
-//            std::cout
-//                    << "infile: " << filenameSrc << "\n"
-//                    << "format: " << pFormatCtx->iformat->name << "\n"
-//
-//                    << "size:   " << st->codecpar->width << 'x' << st->codecpar->height << "\n"
-//                    << "fps:    " << av_q2d(st->avg_frame_rate) << " [fps]\n"
-//                    << "length: " << av_rescale_q(st->duration, st->time_base, {1,1000}) / 1000. << " [sec]\n"
-//                    << "pixfmt: " << st->codecpar->format << "\n"
-//                    << "frame:  " << st->nb_frames << "\n"
-//                    << std::flush;
         }
 
         videoStream = av_find_best_stream(pFormatCtx, AVMEDIA_TYPE_VIDEO,videoStream, -1, NULL, 0);
@@ -70,7 +58,7 @@ namespace YEAH
 
         pCodecCtx = pFormatCtx->streams[videoStream]->codec;
 
-        pCodec =avcodec_find_decoder(pCodecCtx->codec_id);
+        pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
         if(pCodec==NULL)
         {
             //exception
@@ -141,7 +129,7 @@ namespace YEAH
     void FFmpegDecoder::finalize()
     {
         sws_freeContext(img_convert_ctx);
-        if (pFrameRGB->data[0] != NULL)
+//        if (pFrameRGB->data[0] != NULL)
 //        {
 //            std::cout >> &(pFrameRGB->data[0]) >> std::endl;
 //            av_freep(&(pFrameRGB->data[0]));

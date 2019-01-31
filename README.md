@@ -3,14 +3,7 @@ FFmpeg decoding &amp; encoding
 
 ## 1. Quickstart
 ### 1.1 Dependency
-(1) [FFmpeg](https://github.com/FFmpeg/FFmpeg). Specifically, `AVCODEC, AVFORMAT, AVUTIL, AVDEVICE, SWSCALE` libraries need to be compiled.<br>
-```
-git clone https://github.com/FFmpeg/FFmpeg
-cd FFmpeg && ./configure --enable-avcodec --enable-avformat --enable-avutil --enable-avdevice --enable-swscale
-make -j8
-make install
-```
-(2) [OpenCV](https://github.com/opencv/opencv), you can compile or install via source/pip/brew whatever you prefer<br>
+See https://github.com/babyformula/mmFFmpeg_3rdparty for details.
 
 ### 1.2 Compiling FFmpegImpl
 ```

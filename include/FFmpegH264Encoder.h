@@ -80,9 +80,12 @@ namespace YEAH
         AVFormatContext *m_oc;
         AVCodec *m_video_codec;
         AVFrame * m_frame;
+        AVPacket pkt;
         //AVFrame * m_src_picture, * m_dst_picture;
         SwsContext *sws_ctx;
+        uint8_t* picture_buf;
         int bufferSize;
+        int framecnt;
 
         std::function<void()> onFrame;
 
