@@ -5,17 +5,17 @@
 
 extern "C" {
 
-    #include <stdlib.h>
-    #include <stdio.h>
-    #include <string.h>
-    #include <math.h>
-    #include <libavutil/opt.h>
-    #include <libavutil/mathematics.h>
-    #include <libavformat/avformat.h>
-    #include <libswscale/swscale.h>
-    #include <libswresample/swresample.h>
-    #include <libavutil/imgutils.h>
-    #include <libavcodec/avcodec.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <libavutil/opt.h>
+#include <libavutil/mathematics.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
+#include <libavutil/imgutils.h>
+#include <libavcodec/avcodec.h>
 
 }
 
@@ -48,6 +48,7 @@ namespace YEAH
 
         void SendNewFrame(uint8_t * RGBFrame);
         void WriteFrame(uint8_t * RGBFrame);
+        void WriteVideo(uint8_t * RGBFrame);
         char ReleaseFrame();
 
         void run();
@@ -78,9 +79,13 @@ namespace YEAH
         AVOutputFormat *m_fmt;
         AVFormatContext *m_oc;
         AVCodec *m_video_codec;
-        AVFrame * m_src_picture, * m_dst_picture;
+        AVFrame * m_frame;
+        AVPacket pkt;
+        //AVFrame * m_src_picture, * m_dst_picture;
         SwsContext *sws_ctx;
+        uint8_t* picture_buf;
         int bufferSize;
+        int framecnt;
 
         std::function<void()> onFrame;
 

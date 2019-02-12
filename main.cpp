@@ -10,11 +10,19 @@ int HTTPTunnelPort;
 pthread_t thread1;
 pthread_t thread2;
 
-void onFrame(uint8_t * data, int height, int width)
+void * runEncoder(void * encoder)
 {
-    cv::Mat ret_img(height, width, CV_8UC3, data);
-    cv::imshow("RGBFrame", ret_img);
-    cv::waitKey();
+    ((YEAH::FFmpegH264Encoder * ) encoder)->run();
+    pthread_exit(NULL);
+}
+
+void onFrameMain(uint8_t * data, int height, int width)
+{
+    // DEBUG
+//    cv::Mat ret_img(height*3/2, width, CV_8UC1, data);
+//    cv::cvtColor(ret_img, ret_img, CV_YUV2BGR_I420);
+//    cv::imshow("RGBFrame", ret_img);
+//    cv::waitKey(20);
 
     encoder->SendNewFrame(data);
 }
@@ -28,13 +36,21 @@ int main(int argc, const char * argv[])
     if(argc==4)
         HTTPTunnelPort = atoi(argv[3]);
 
-    decoder = new YEAH::FFmpegDecoder("/Volumes/G_DRIVE_mobile_SSD_R_Series/lastvideos/0A852916-5E66-5E67-3DFB-365779372B0D20181123_h265.mp4");
+    decoder = new YEAH::FFmpegDecoder("/Users/spectrum/Pictures/0A852916-5E66-5E67-3DFB-365779372B0D20181123_h265.mp4");
     decoder->initialize();
-    decoder->height;
-    decoder->setOnframeCallbackFunction(onFrame);
+    decoder->setOnframeCallbackFunction(onFrameMain);
+
+    // DEBUG
+    std::cout
+    << "height:     " << decoder->height << "\n"
+    << "width:      " << decoder->width << "\n"
+    << "frameRate:  " << decoder->frameRate << " [fps]\n"
+    << "bitrate:    " << decoder->bitrate << " [bps]\n"
+    << "GOP:        " << decoder->GOP << " \n"
+    << std::flush;
 
     encoder = new YEAH::FFmpegH264Encoder();
-    encoder->SetupVideo("dummy.avi",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
+    encoder->SetupVideo("dummy_o.H264",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
 //    server = new YEAH::LiveRTSPServer(encoder, UDPPort, HTTPTunnelPort);
 //
 //    pthread_attr_t attr1;
@@ -47,19 +63,21 @@ int main(int argc, const char * argv[])
 //        return -1;
 //    }
 //
-//    pthread_attr_t attr2;
-//    pthread_attr_init(&attr2);
-//    pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
-//    int rc2 = pthread_create(&thread2, &attr2, runEncoder, encoder);
-//
-//    if (rc2){
-//        //exception
-//        return -1;
-//    }
+    pthread_attr_t attr2;
+    pthread_attr_init(&attr2);
+    pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
+    int rc2 = pthread_create(&thread2, &attr2, runEncoder, encoder);
+
+    if (rc2){
+        //exception
+        return -1;
+    }
 
     // Play Media Here
     decoder->playMedia();
-
+    
+    encoder->CloseVideo();
+    
     decoder->finalize();
 
 

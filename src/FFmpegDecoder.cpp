@@ -1,5 +1,4 @@
 #include "../include/FFmpegDecoder.h"
-#include <opencv2/opencv.hpp>
 
 namespace YEAH
 {
@@ -13,7 +12,7 @@ namespace YEAH
     {
 
         // Intialize FFmpeg enviroment
-
+        av_register_all();
         avdevice_register_all();
 
         avformat_network_init();
@@ -47,18 +46,6 @@ namespace YEAH
             if (videoStream == -1)
                 if (avformat_match_stream_specifier(pFormatCtx, st, "vst") > 0)
                     videoStream = i;
-
-            // print input video stream informataion
-            std::cout
-                    << "infile: " << filenameSrc << "\n"
-                    << "format: " << pFormatCtx->iformat->name << "\n"
-
-                    << "size:   " << st->codecpar->width << 'x' << st->codecpar->height << "\n"
-                    << "fps:    " << av_q2d(st->avg_frame_rate) << " [fps]\n"
-                    << "length: " << av_rescale_q(st->duration, st->time_base, {1,1000}) / 1000. << " [sec]\n"
-                    << "pixfmt: " << st->codecpar->format << "\n"
-                    << "frame:  " << st->nb_frames << "\n"
-                    << std::flush;
         }
 
         videoStream = av_find_best_stream(pFormatCtx, AVMEDIA_TYPE_VIDEO,videoStream, -1, NULL, 0);
@@ -71,7 +58,7 @@ namespace YEAH
 
         pCodecCtx = pFormatCtx->streams[videoStream]->codec;
 
-        pCodec =avcodec_find_decoder(pCodecCtx->codec_id);
+        pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
         if(pCodec==NULL)
         {
             //exception
@@ -88,14 +75,14 @@ namespace YEAH
         }
 
         pFrameRGB = av_frame_alloc();
-        AVPixelFormat  pFormat = AV_PIX_FMT_BGR24;
+        AVPixelFormat  pFormat = AV_PIX_FMT_YUV420P;
         uint8_t *fbuffer;
         int numBytes;
         numBytes = avpicture_get_size(pFormat,pCodecCtx->width,pCodecCtx->height) ; //AV_PIX_FMT_RGB24
         fbuffer = (uint8_t *) av_malloc(numBytes*sizeof(uint8_t));
         avpicture_fill((AVPicture *) pFrameRGB,fbuffer,pFormat,pCodecCtx->width,pCodecCtx->height);
 
-        img_convert_ctx = sws_getCachedContext(NULL,pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,   pCodecCtx->width, pCodecCtx->height, AV_PIX_FMT_BGR24, SWS_BICUBIC, NULL, NULL,NULL);
+        img_convert_ctx = sws_getCachedContext(NULL,pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,   pCodecCtx->width, pCodecCtx->height, AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL,NULL);
 
         height = pCodecCtx->height;
         width =  pCodecCtx->width;
@@ -142,7 +129,11 @@ namespace YEAH
     void FFmpegDecoder::finalize()
     {
         sws_freeContext(img_convert_ctx);
-        av_freep(&(pFrameRGB->data[0]));
+//        if (pFrameRGB->data[0] != NULL)
+//        {
+//            std::cout >> &(pFrameRGB->data[0]) >> std::endl;
+//            av_freep(&(pFrameRGB->data[0]));
+//        }
         av_frame_unref(pFrameRGB);
         av_free(pFrameRGB);
         avcodec_close(pCodecCtx);

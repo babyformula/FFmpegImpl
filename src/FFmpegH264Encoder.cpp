@@ -1,4 +1,6 @@
 #include "../include/FFmpegH264Encoder.h"
+#include "../include/FFmpegDecoder.h"
+#include <opencv2/opencv.hpp>
 
 namespace YEAH
 {
@@ -6,7 +8,10 @@ namespace YEAH
     {
         pthread_mutex_init(&inqueue_mutex,NULL);
         pthread_mutex_init(&outqueue_mutex,NULL);
+    }
 
+    FFmpegH264Encoder::~FFmpegH264Encoder()
+    {
     }
 
     void FFmpegH264Encoder::setCallbackFunctionFrameIsReady(std::function<void()> func)
@@ -56,7 +61,7 @@ namespace YEAH
         avformat_alloc_output_context2(&m_oc, NULL, NULL, filename);
 
         if (!m_oc) {
-            avformat_alloc_output_context2(&m_oc, NULL, "avi", filename);
+            avformat_alloc_output_context2(&m_oc, NULL, "mp4", filename);
         }
 
         if (!m_oc) {
@@ -82,17 +87,25 @@ namespace YEAH
         }
 
         st->id = m_oc->nb_streams-1;
+        st->time_base.den = m_AVIMOV_FPS;
+        st->time_base.num = 1;
 
         m_c = st->codec;
 
-        m_c->codec_id = m_fmt->video_codec;
-        m_c->bit_rate = m_AVIMOV_BPS;			//Bits Per Second
-        m_c->width    = m_AVIMOV_WIDTH;			//Note Resolution must be a multiple of 2!!
-        m_c->height   = m_AVIMOV_HEIGHT;		//Note Resolution must be a multiple of 2!!
-        m_c->time_base.den = m_AVIMOV_FPS;		//Frames per second
+        m_c->codec_id   = m_fmt->video_codec;
+        m_c->codec_type = AVMEDIA_TYPE_VIDEO;
+//        m_c->bit_rate   = m_AVIMOV_BPS;            //Bits Per Second
+        m_c->width      = m_AVIMOV_WIDTH;			//Note Resolution must be a multiple of 2!!
+        m_c->height     = m_AVIMOV_HEIGHT;		//Note Resolution must be a multiple of 2!!
+        m_c->time_base.den = m_AVIMOV_FPS;        //Frames per second
         m_c->time_base.num = 1;
-        m_c->gop_size      = m_AVIMOV_GOB;		// Intra frames per x P frames
+//        m_c->gop_size      = m_AVIMOV_GOB;        // Intra frames per x P frames
         m_c->pix_fmt       = AV_PIX_FMT_YUV420P;//Do not change this, H264 needs YUV format not RGB
+        
+        m_c->qmin          = 10;
+        m_c->qmax          = 51;
+        
+        m_c->max_b_frames=3;
 
 
         if (m_oc->oformat->flags & AVFMT_GLOBALHEADER)
@@ -100,40 +113,66 @@ namespace YEAH
 
         m_video_st=st;
 
-
-        AVCodecContext *c = m_video_st->codec;
-
-        ret = avcodec_open2(c, m_video_codec, NULL);
-        if (ret < 0) {
-            return;
+        //////////////////////////////
+        framecnt=0;
+        
+        AVDictionary *param = 0;
+        //H.264
+        if(m_c->codec_id == AV_CODEC_ID_H264) {
+            //            av_dict_set(&param, "preset", "slow", 0);
+            //            av_dict_set(&param, "tune", "zerolatency", 0);
+            av_dict_set(&param, "crf", "25", 0);
+            av_dict_set(&param, "me_method", "umh", 0);
+            av_dict_set(&param, "subq", "9", 0);
+            av_dict_set(&param, "chromaoffset", "-1", 0);
+            av_dict_set(&param, "threads", "24", 0);
+            av_dict_set(&param, "mbtree", "0", 0);
+            av_dict_set(&param, "keyint_min", "100", 0);
+            av_dict_set(&param, "refs", "5", 0);
+            av_dict_set(&param, "psy-rd", "1.5:0.96", 0);
+            av_dict_set(&param, "b-bias", "8", 0);
+            av_dict_set(&param, "b-pyramids", "none", 0);
+            av_dict_set(&param, "direct-pred", "3", 0);
+            av_dict_set(&param, "b_qfactor", "4", 0);
+            av_dict_set(&param, "aq-mode", "2", 0);
+            av_dict_set(&param, "aq-strength", "0.1", 0);
+            av_dict_set(&param, "partitions", "all", 0);
+            av_opt_set(m_c->priv_data, "x264opts", "bframes=3", 0);
+            //            av_dict_set(&param, "profile", "main", 0);
         }
-
-        //ret = avpicture_alloc(&m_dst_picture, c->pix_fmt, c->width, c->height);
-        m_dst_picture = av_frame_alloc();
-        m_dst_picture->format = c->pix_fmt;
-        m_dst_picture->data[0] = NULL;
-        m_dst_picture->linesize[0] = -1;
-        m_dst_picture->pts = 0;
-        m_dst_picture->width = m_c->width;
-        m_dst_picture->height = m_c->height;
-
-        ret = av_image_alloc(m_dst_picture->data, m_dst_picture->linesize, c->width, c->height, (AVPixelFormat)m_dst_picture->format, 32);
-        if (ret < 0) {
-            return;
+        //H.265
+        if(m_c->codec_id == AV_CODEC_ID_H265){
+            av_dict_set(&param, "preset", "ultrafast", 0);
+            av_dict_set(&param, "tune", "zero-latency", 0);
         }
-
-        //ret = avpicture_alloc(&m_src_picture, AV_PIX_FMT_BGR24, c->width, c->height);
-        m_src_picture = av_frame_alloc();
-        m_src_picture->format = c->pix_fmt;
-        ret = av_image_alloc(m_src_picture->data, m_src_picture->linesize, c->width, c->height, AV_PIX_FMT_BGR24, 24);
-
-        if (ret < 0) {
-            return;
-        }
-
-        bufferSize = ret;
-
+        
         av_dump_format(m_oc, 0, filename, 1);
+        //m_video_codec = avcodec_find_encoder(m_c->codec_id);
+        
+        if (!m_video_codec){
+            printf("Can not find encoder! \n");
+            return -1;
+        }
+        if (avcodec_open2(m_c, m_video_codec, &param) < 0){
+            printf("Failed to open encoder! \n");
+            return -1;
+        }
+        
+        m_frame = av_frame_alloc();
+        int picture_size = avpicture_get_size(m_c->pix_fmt, m_c->width, m_c->height);
+        picture_buf = (uint8_t *)av_malloc(picture_size);
+        avpicture_fill((AVPicture *)m_frame, picture_buf, m_c->pix_fmt, m_c->width, m_c->height);
+        
+        av_new_packet(&pkt,picture_size);
+        
+        ////////////////////////////////////
+        ret = avcodec_open2(m_c, m_video_codec, &param);
+        if (ret < 0) {
+            printf("Failed to open encoder! \n");
+            return;
+        }
+        
+        bufferSize = ret;
 
         if (!(m_fmt->flags & AVFMT_NOFILE)) {
             ret = avio_open(&m_oc->pb, filename, AVIO_FLAG_WRITE);
@@ -141,15 +180,16 @@ namespace YEAH
                 return;
             }
         }
-
+        
+        //Write File Header
         ret = avformat_write_header(m_oc, NULL);
-
+        
         if (ret < 0) {
             return;
         }
 
-        sws_ctx = sws_getContext(c->width, c->height, AV_PIX_FMT_BGR24,
-                                 c->width, c->height, AV_PIX_FMT_YUV420P,
+        sws_ctx = sws_getContext(m_c->width, m_c->height, AV_PIX_FMT_YUV420P,
+                                 m_c->width, m_c->height, AV_PIX_FMT_YUV420P,
                                  SWS_BICUBIC, NULL, NULL, NULL);
         if (!sws_ctx) {
             return;
@@ -158,59 +198,42 @@ namespace YEAH
 
     void FFmpegH264Encoder::WriteFrame(uint8_t * RGBFrame )
     {
-
-        memcpy(m_src_picture->data[0], RGBFrame, bufferSize);
-
-        sws_scale(sws_ctx,
-                  m_src_picture->data, m_src_picture->linesize,
-                  0, m_c->height, m_dst_picture->data, m_dst_picture->linesize);
-
-
-        AVPacket pkt = { 0 };
-        int got_packet;
-        av_init_packet(&pkt);
-
-        int ret = 0;
-
-        ret = avcodec_encode_video2(m_c, &pkt, m_dst_picture, &got_packet);
-
-        if (ret < 0) {
+        
+        m_frame->width = m_c->width;
+        m_frame->height = m_c->height;
+        m_frame->format = m_video_st->codec->pix_fmt;
+        m_frame->data[0] = RGBFrame;              // Y
+        m_frame->data[1] = RGBFrame+ (m_c->width * m_c->height);      // U
+        m_frame->data[2] = RGBFrame+ (m_c->width * m_c->height)*5/4;  // V
+        
+        //DEBUG
+//        cv::Mat ret_img(m_frame->height*3/2, m_frame->width, CV_8UC1, RGBFrame);
+//        cv::cvtColor(ret_img, ret_img, CV_YUV2BGR_I420);
+//        cv::imwrite("/Users/spectrum/Desktop/RGBFrame.jpg", ret_img);
+        
+        //PTS
+        //pFrame->pts=i;
+        m_frame->pts = m_frame_count*(m_video_st->time_base.den)/((m_video_st->time_base.num)*m_AVIMOV_FPS);
+        int got_picture=0;
+        //Encode
+        int ret = avcodec_encode_video2(m_c, &pkt,m_frame, &got_picture);
+        if(ret < 0){
+            printf("Failed to encode! \n");
             return;
         }
-
-        if (!ret && got_packet && pkt.size)
-        {
+        if (got_picture==1){
+            printf("Succeed to encode frame: %5d\tsize:%5d\n",framecnt,pkt.size);
+            framecnt++;
             pkt.stream_index = m_video_st->index;
-            FrameStructure * frame = new FrameStructure();
-            frame->dataPointer = new uint8_t[pkt.size];
-            frame->dataSize = pkt.size-4;
-            frame->frameID = m_frame_count;
-
-            memcpy(frame->dataPointer,pkt.data+4,pkt.size-4);
-
-            pthread_mutex_lock(&outqueue_mutex);
-
-            if(outqueue.size()<30)
-            {
-                outqueue.push(frame);
-            }
-            else
-            {
-                delete frame;
-            }
-
-            pthread_mutex_unlock(&outqueue_mutex);
-
+            ret = av_write_frame(m_oc, &pkt);
+            av_free_packet(&pkt);
         }
 
-        av_free_packet(&pkt);
-
         m_frame_count++;
-        m_dst_picture->pts += av_rescale_q(1, m_video_st->codec->time_base, m_video_st->time_base);
 
-        onFrame();
+        //onFrame();
     }
-
+    
     void FFmpegH264Encoder::SetupVideo(std::string filename, int Width, int Height, int FPS, int GOB, int BitPerSecond)
     {
         m_filename = filename;
@@ -229,12 +252,9 @@ namespace YEAH
         av_write_trailer(m_oc);
         avcodec_close(m_video_st->codec);
 
-        av_freep(&(m_dst_picture->data[0]));
-        av_frame_unref(m_dst_picture);
-        av_free(m_dst_picture);
-        av_freep(&(m_src_picture->data[0]));
-        av_frame_unref(m_src_picture);
-        av_free(m_src_picture);
+        av_freep(&(m_frame->data[0]));
+        av_frame_unref(m_frame);
+        av_free(m_frame);
 
         if (!(m_fmt->flags & AVFMT_NOFILE))
             avio_close(m_oc->pb);
