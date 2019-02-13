@@ -81,6 +81,8 @@ message(STATUS "    libraries: ${AUDIOTOOLBOX_LIBRARY}")
 message(STATUS "BZ2 library status:")
 message(STATUS "    libraries: ${BZ2_LIBRARY}")
 
+find_package (Threads)
+
 include_directories(${OpenCV_INCLUDE_DIRS}
         ${AVCODEC_INCLUDE_DIR}
         ${AVFORMAT_INCLUDE_DIR}
@@ -94,6 +96,4 @@ target_link_libraries(FFmpegImpl ${OpenCV_LIBS}
         ${AVUTIL_LIBRARY}
         ${AVDEVICE_LIBRARY}
         ${SWSCALE_LIBRARY}
-        ${AVFOUNDATION_LIBRARY}
-        ${AUDIOTOOLBOX_LIBRARY}
-        ${BZ2_LIBRARY})
+        ${CMAKE_THREAD_LIBS_INIT})
