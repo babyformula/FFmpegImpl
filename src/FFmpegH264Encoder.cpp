@@ -151,11 +151,11 @@ namespace YEAH
         
         if (!m_video_codec){
             printf("Can not find encoder! \n");
-            return -1;
+            return;
         }
         if (avcodec_open2(m_c, m_video_codec, &param) < 0){
             printf("Failed to open encoder! \n");
-            return -1;
+            return;
         }
         
         m_frame = av_frame_alloc();
