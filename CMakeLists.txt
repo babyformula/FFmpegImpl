@@ -38,12 +38,6 @@ find_library(X264_LIBRARY x264)
 find_path(X265_INCLUDE_DIR x265.h)
 find_library(X265_LIBRARY x265)
 
-find_library(AVFOUNDATION_LIBRARY Avfoundation)
-
-find_library(AUDIOTOOLBOX_LIBRARY AudioToolbox)
-
-find_library(BZ2_LIBRARY bz2)
-
 message(STATUS "AVCODEC library status:")
 message(STATUS "    libraries: ${AVCODEC_LIBRARY}")
 message(STATUS "    include path: ${AVCODEC_INCLUDE_DIR}")
@@ -72,14 +66,7 @@ message(STATUS "X265 library status:")
 message(STATUS "    libraries: ${X265_LIBRARY}")
 message(STATUS "    include path: ${X265_INCLUDE_DIR}")
 
-message(STATUS "AVFOUNDATION library status:")
-message(STATUS "    libraries: ${AVFOUNDATION_LIBRARY}")
-
-message(STATUS "AUDIOTOOLBOX library status:")
-message(STATUS "    libraries: ${AUDIOTOOLBOX_LIBRARY}")
-
-message(STATUS "BZ2 library status:")
-message(STATUS "    libraries: ${BZ2_LIBRARY}")
+find_package (Threads)
 
 include_directories(${OpenCV_INCLUDE_DIRS}
         ${AVCODEC_INCLUDE_DIR}
@@ -94,6 +81,4 @@ target_link_libraries(FFmpegImpl ${OpenCV_LIBS}
         ${AVUTIL_LIBRARY}
         ${AVDEVICE_LIBRARY}
         ${SWSCALE_LIBRARY}
-        ${AVFOUNDATION_LIBRARY}
-        ${AUDIOTOOLBOX_LIBRARY}
-        ${BZ2_LIBRARY})
+        ${CMAKE_THREAD_LIBS_INIT})
