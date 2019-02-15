@@ -44,12 +44,13 @@ namespace YEAH
                 if(frame != NULL)
                 {
                     WriteFrame(frame);
+                    OpenOutFile(<#const char *szOutFileUrl#>, <#char *szFormat#>, isHaveVideo, isHaveAudio);
                 }
             }
         }
     }
 
-    void FFmpegH264Encoder::SetupCodec(const char *filename, int codec_id)
+    void FFmpegH264Encoder::SetupCodec(const char *filename, int codec_id, bool isHaveVideo, bool isHaveAudio)
     {
         int ret;
         m_sws_flags = SWS_BICUBIC;
@@ -92,14 +93,15 @@ namespace YEAH
 
         m_c = st->codec;
 
+//        m_c->bit_rate   = 1000;            //Bits Per Second
+//        m_c->gop_size      = m_AVIMOV_GOB;        // Intra frames per x P frames
+
         m_c->codec_id   = m_fmt->video_codec;
         m_c->codec_type = AVMEDIA_TYPE_VIDEO;
-//        m_c->bit_rate   = m_AVIMOV_BPS;            //Bits Per Second
         m_c->width      = m_AVIMOV_WIDTH;			//Note Resolution must be a multiple of 2!!
         m_c->height     = m_AVIMOV_HEIGHT;		//Note Resolution must be a multiple of 2!!
         m_c->time_base.den = m_AVIMOV_FPS;        //Frames per second
         m_c->time_base.num = 1;
-//        m_c->gop_size      = m_AVIMOV_GOB;        // Intra frames per x P frames
         m_c->pix_fmt       = AV_PIX_FMT_YUV420P;//Do not change this, H264 needs YUV format not RGB
         
         m_c->qmin          = 10;
@@ -122,23 +124,23 @@ namespace YEAH
             //            av_dict_set(&param, "preset", "slow", 0);
             //            av_dict_set(&param, "tune", "zerolatency", 0);
             av_dict_set(&param, "crf", "25", 0);
-            av_dict_set(&param, "me_method", "umh", 0);
-            av_dict_set(&param, "subq", "9", 0);
-            av_dict_set(&param, "chromaoffset", "-1", 0);
-            av_dict_set(&param, "threads", "24", 0);
-            av_dict_set(&param, "mbtree", "0", 0);
-            av_dict_set(&param, "keyint_min", "100", 0);
-            av_dict_set(&param, "refs", "5", 0);
-            av_dict_set(&param, "psy-rd", "1.5:0.96", 0);
-            av_dict_set(&param, "b-bias", "8", 0);
-            av_dict_set(&param, "b-pyramids", "none", 0);
-            av_dict_set(&param, "direct-pred", "3", 0);
-            av_dict_set(&param, "b_qfactor", "4", 0);
-            av_dict_set(&param, "aq-mode", "2", 0);
-            av_dict_set(&param, "aq-strength", "0.1", 0);
-            av_dict_set(&param, "partitions", "all", 0);
-            av_opt_set(m_c->priv_data, "x264opts", "bframes=3", 0);
-            //            av_dict_set(&param, "profile", "main", 0);
+//            av_dict_set(&param, "me_method", "umh", 0);
+//            av_dict_set(&param, "subq", "9", 0);
+//            av_dict_set(&param, "chromaoffset", "-1", 0);
+//            av_dict_set(&param, "threads", "24", 0);
+//            av_dict_set(&param, "mbtree", "0", 0);
+//            av_dict_set(&param, "keyint_min", "100", 0);
+//            av_dict_set(&param, "refs", "5", 0);
+//            av_dict_set(&param, "psy-rd", "1.5:0.96", 0);
+//            av_dict_set(&param, "b-bias", "8", 0);
+//            av_dict_set(&param, "b-pyramids", "none", 0);
+//            av_dict_set(&param, "direct-pred", "3", 0);
+//            av_dict_set(&param, "b_qfactor", "4", 0);
+//            av_dict_set(&param, "aq-mode", "2", 0);
+//            av_dict_set(&param, "aq-strength", "0.1", 0);
+//            av_dict_set(&param, "partitions", "all", 0);
+//            av_opt_set(m_c->priv_data, "x264opts", "bframes=3", 0);
+//            av_dict_set(&param, "profile", "main", 0);
         }
         //H.265
         if(m_c->codec_id == AV_CODEC_ID_H265){
@@ -234,7 +236,81 @@ namespace YEAH
         //onFrame();
     }
     
-    void FFmpegH264Encoder::SetupVideo(std::string filename, int Width, int Height, int FPS, int GOB, int BitPerSecond)
+    int  FFmpegH264Encoder::OpenOutFile(const char* szOutFileUrl,char* szFormat, bool isHaveVideo, bool isHaveAudio)
+    {
+        if(m_oc)
+        return 1;
+        int result = 1;
+        AVOutputFormat* ofmt = NULL;
+        int re = avformat_alloc_output_context2(&m_oc,NULL,szFormat,szOutFileUrl);
+        if(re < 0 || m_oc == NULL)
+        {
+            result = 100;
+        }
+        else
+        {
+            printf("create file success[%s]", szOutFileUrl);
+        }
+        
+        ofmt = m_oc->oformat;
+        if (!(ofmt->flags & AVFMT_NOFILE))
+        {
+            if(avio_open(&m_oc->pb,szOutFileUrl, AVIO_FLAG_WRITE) < 0)
+            {
+                result = 101;
+            }
+        }
+        
+        if(isHaveAudio) //音频
+        {
+//            if((m_audio_st = addOutStream(AVMEDIA_TYPE_AUDIO,aCodeId,&m_audio_codec,cABack,pUser) )== NULL)
+//            {
+//                result = 102;
+//            }
+            m_audioIndex = m_audio_st->id;
+        }
+        
+        if(isHaveVideo) //视频
+        {
+//            if((m_video_st = addOutStream(AVMEDIA_TYPE_VIDEO,vCodeId,&m_video_codec,cVBack,pUser)) == NULL)
+//            {
+//                result = 103;
+//            }
+            m_videoIndex = m_video_st->id;
+        }
+        
+        if ((strstr(m_oc->oformat->name, "mp4") != NULL) ||
+            strstr(m_oc->oformat->name,"flv") != NULL)
+        {
+            if (m_audio_st && m_audio_st->codec->codec_id == AV_CODEC_ID_AAC)
+            {
+                m_absfc =  av_bitstream_filter_init("aac_adtstoasc");
+                if( m_absfc == NULL)
+                {
+                    result = 110;
+                }
+            }
+            if(m_video_st &&
+               (strstr(m_oc->oformat->name, "mp4") != NULL))
+            {
+                if(m_video_st->codec->codec_id == AV_CODEC_ID_H264 || m_video_st->codec->codec_id == AV_CODEC_ID_H265)
+                {
+                    char* szMp4box = "h264_mp4toannexb";
+                    if(m_video_st->codec->codec_id == AV_CODEC_ID_H265)
+                    szMp4box = "hevc_mp4toannexb";
+                    
+                    m_vbsfc =  av_bitstream_filter_init(szMp4box);
+                    if( m_vbsfc == NULL)
+                    {
+                        result = 111;
+                    }
+                }
+            }
+        }
+        //av_dump_format(m_oc, 0, szOutFileUrl, 1);
+    }
+    
+    void FFmpegH264Encoder::SetupVideo(std::string filename, int Width, int Height, int FPS, int GOB, int BitPerSecond, bool isHaveVideo, bool isHaveAudio)
     {
         m_filename = filename;
         m_AVIMOV_WIDTH=Width;	//Movie width

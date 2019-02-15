@@ -5,6 +5,11 @@ include(cmake/cmake-build-funcs.cmake)
 
 set(CMAKE_CXX_STANDARD 14)
 
+set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "Configs" FORCE)
+
+include_directories("/Users/spectrum/caffe-augmentation/build/include") 
+link_directories("/Users/spectrum/caffe-augmentation/build/lib")
+
 add_executable(FFmpegImpl main.cpp src/FFmpegDecoder.cpp include/FFmpegDecoder.h src/FFmpegH264Encoder.cpp include/FFmpegH264Encoder.h)
 
 find_package(OpenCV REQUIRED)

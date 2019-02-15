@@ -53,6 +53,8 @@ namespace YEAH
 
         void run();
         char GetFrame(u_int8_t** FrameBuffer, unsigned int *FrameSize);
+        
+        int  OpenOutFile(const char *szOutFileUrl,char* szFormat);
 
     private:
 
@@ -75,17 +77,27 @@ namespace YEAH
         double m_video_time;
 
         AVCodecContext *m_c;
+        
         AVStream *m_video_st;
+        AVStream *m_audio_st;
+        
         AVOutputFormat *m_fmt;
         AVFormatContext *m_oc;
         AVCodec *m_video_codec;
+        AVCodec *m_audio_codec;
         AVFrame * m_frame;
         AVPacket pkt;
-        //AVFrame * m_src_picture, * m_dst_picture;
+        
+        AVBitStreamFilterContext* m_vbsfc;
+        AVBitStreamFilterContext* m_absfc;
+        
         SwsContext *sws_ctx;
         uint8_t* picture_buf;
         int bufferSize;
         int framecnt;
+        
+        int m_videoIndex;
+        int m_audioIndex;
 
         std::function<void()> onFrame;
 

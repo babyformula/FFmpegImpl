@@ -38,6 +38,8 @@ namespace YEAH
         int frameRate;
 
         int bitrate;
+        
+        int FPS;
 
         std::function<void(uint8_t *, int, int)> onFrame;
 
@@ -46,6 +48,9 @@ namespace YEAH
         std::string path;
 
         AVCodecContext  *pCodecCtx;
+        
+        AVCodecContext  *vCodecCtx;
+        AVCodecContext  *aCodecCtx;
 
         AVFormatContext *pFormatCtx;
 
@@ -53,8 +58,17 @@ namespace YEAH
 
         struct SwsContext * img_convert_ctx;
 
-        int videoStream;
+        int videoStreamIdx;
+        int audioStreamIdx;
 
+        int videoCodecID;
+        int audioCodecID;
+        
+        int channels;
+        int sampleRate;
+        
+        bool isHaveVideo;
+        bool isHaveAudio;
 
     };
 }
