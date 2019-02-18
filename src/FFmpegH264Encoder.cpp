@@ -23,7 +23,7 @@ namespace YEAH
     void FFmpegH264Encoder::SendNewFrame(uint8_t * RGBFrame) {
         pthread_mutex_lock(&inqueue_mutex);
 
-        if(inqueue.size()<30)
+        if(inqueue.size()<60)
         {
             inqueue.push(RGBFrame);
         }
@@ -44,13 +44,12 @@ namespace YEAH
                 if(frame != NULL)
                 {
                     WriteFrame(frame);
-                    OpenOutFile(<#const char *szOutFileUrl#>, <#char *szFormat#>, isHaveVideo, isHaveAudio);
                 }
             }
         }
     }
 
-    void FFmpegH264Encoder::SetupCodec(const char *filename, int codec_id, bool isHaveVideo, bool isHaveAudio)
+    void FFmpegH264Encoder::SetupCodec(const char *filename, int codec_id)
     {
         int ret;
         m_sws_flags = SWS_BICUBIC;
@@ -62,7 +61,7 @@ namespace YEAH
         avformat_alloc_output_context2(&m_oc, NULL, NULL, filename);
 
         if (!m_oc) {
-            avformat_alloc_output_context2(&m_oc, NULL, "mp4", filename);
+            avformat_alloc_output_context2(&m_oc, NULL, "flv", filename);
         }
 
         if (!m_oc) {
@@ -88,26 +87,25 @@ namespace YEAH
         }
 
         st->id = m_oc->nb_streams-1;
-        st->time_base.den = m_AVIMOV_FPS;
+        st->time_base.den = 1000;
         st->time_base.num = 1;
 
         m_c = st->codec;
 
-//        m_c->bit_rate   = 1000;            //Bits Per Second
-//        m_c->gop_size      = m_AVIMOV_GOB;        // Intra frames per x P frames
-
         m_c->codec_id   = m_fmt->video_codec;
         m_c->codec_type = AVMEDIA_TYPE_VIDEO;
+//        m_c->bit_rate   = m_AVIMOV_BPS;            //Bits Per Second
         m_c->width      = m_AVIMOV_WIDTH;			//Note Resolution must be a multiple of 2!!
         m_c->height     = m_AVIMOV_HEIGHT;		//Note Resolution must be a multiple of 2!!
-        m_c->time_base.den = m_AVIMOV_FPS;        //Frames per second
+        m_c->time_base.den = 1000;        //Frames per second
         m_c->time_base.num = 1;
+//        m_c->gop_size      = m_AVIMOV_GOB;        // Intra frames per x P frames
         m_c->pix_fmt       = AV_PIX_FMT_YUV420P;//Do not change this, H264 needs YUV format not RGB
         
         m_c->qmin          = 10;
         m_c->qmax          = 51;
         
-        m_c->max_b_frames=3;
+//        m_c->max_b_frames=3;
 
 
         if (m_oc->oformat->flags & AVFMT_GLOBALHEADER)
@@ -123,14 +121,14 @@ namespace YEAH
         if(m_c->codec_id == AV_CODEC_ID_H264) {
             //            av_dict_set(&param, "preset", "slow", 0);
             //            av_dict_set(&param, "tune", "zerolatency", 0);
-            av_dict_set(&param, "crf", "25", 0);
+//            av_dict_set(&param, "crf", "25", 0);
 //            av_dict_set(&param, "me_method", "umh", 0);
 //            av_dict_set(&param, "subq", "9", 0);
 //            av_dict_set(&param, "chromaoffset", "-1", 0);
 //            av_dict_set(&param, "threads", "24", 0);
 //            av_dict_set(&param, "mbtree", "0", 0);
 //            av_dict_set(&param, "keyint_min", "100", 0);
-//            av_dict_set(&param, "refs", "5", 0);
+            av_dict_set(&param, "refs", "1", 0);
 //            av_dict_set(&param, "psy-rd", "1.5:0.96", 0);
 //            av_dict_set(&param, "b-bias", "8", 0);
 //            av_dict_set(&param, "b-pyramids", "none", 0);
@@ -139,8 +137,12 @@ namespace YEAH
 //            av_dict_set(&param, "aq-mode", "2", 0);
 //            av_dict_set(&param, "aq-strength", "0.1", 0);
 //            av_dict_set(&param, "partitions", "all", 0);
-//            av_opt_set(m_c->priv_data, "x264opts", "bframes=3", 0);
-//            av_dict_set(&param, "profile", "main", 0);
+            av_opt_set(m_c->priv_data, "x264opts", "level=2.2", 0);
+            av_dict_set(&param, "preset", "ultrafast", 0); 
+            av_dict_set(&param, "sc_threshold", "0", 0);
+            av_dict_set(&param, "keyint_min", "15", 0);
+            av_dict_set(&param, "profile", "high", 0);
+            av_dict_set(&param, "tune", "zerolatency", 0);
         }
         //H.265
         if(m_c->codec_id == AV_CODEC_ID_H265){
@@ -149,6 +151,8 @@ namespace YEAH
         }
         
         av_dump_format(m_oc, 0, filename, 1);
+        char buff[10000] = { 0 };
+        ret = av_sdp_create(&m_oc, 1, buff, sizeof(buff));
         //m_video_codec = avcodec_find_encoder(m_c->codec_id);
         
         if (!m_video_codec){
@@ -216,9 +220,11 @@ namespace YEAH
         //PTS
         //pFrame->pts=i;
         m_frame->pts = m_frame_count*(m_video_st->time_base.den)/((m_video_st->time_base.num)*m_AVIMOV_FPS);
+        printf("Frame's pts: %5d\n", m_frame->pts);
         int got_picture=0;
         //Encode
         int ret = avcodec_encode_video2(m_c, &pkt,m_frame, &got_picture);
+        //int ret = avcodec_send_frame(m_c, m_frame);
         if(ret < 0){
             printf("Failed to encode! \n");
             return;
@@ -226,8 +232,9 @@ namespace YEAH
         if (got_picture==1){
             printf("Succeed to encode frame: %5d\tsize:%5d\n",framecnt,pkt.size);
             framecnt++;
-            pkt.stream_index = m_video_st->index;
-            ret = av_write_frame(m_oc, &pkt);
+//            pkt.stream_index = m_video_st->index;
+            av_packet_rescale_ts(&pkt, m_c->time_base, m_video_st->time_base);
+            ret = av_interleaved_write_frame(m_oc, &pkt);
             av_free_packet(&pkt);
         }
 
@@ -236,81 +243,7 @@ namespace YEAH
         //onFrame();
     }
     
-    int  FFmpegH264Encoder::OpenOutFile(const char* szOutFileUrl,char* szFormat, bool isHaveVideo, bool isHaveAudio)
-    {
-        if(m_oc)
-        return 1;
-        int result = 1;
-        AVOutputFormat* ofmt = NULL;
-        int re = avformat_alloc_output_context2(&m_oc,NULL,szFormat,szOutFileUrl);
-        if(re < 0 || m_oc == NULL)
-        {
-            result = 100;
-        }
-        else
-        {
-            printf("create file success[%s]", szOutFileUrl);
-        }
-        
-        ofmt = m_oc->oformat;
-        if (!(ofmt->flags & AVFMT_NOFILE))
-        {
-            if(avio_open(&m_oc->pb,szOutFileUrl, AVIO_FLAG_WRITE) < 0)
-            {
-                result = 101;
-            }
-        }
-        
-        if(isHaveAudio) //音频
-        {
-//            if((m_audio_st = addOutStream(AVMEDIA_TYPE_AUDIO,aCodeId,&m_audio_codec,cABack,pUser) )== NULL)
-//            {
-//                result = 102;
-//            }
-            m_audioIndex = m_audio_st->id;
-        }
-        
-        if(isHaveVideo) //视频
-        {
-//            if((m_video_st = addOutStream(AVMEDIA_TYPE_VIDEO,vCodeId,&m_video_codec,cVBack,pUser)) == NULL)
-//            {
-//                result = 103;
-//            }
-            m_videoIndex = m_video_st->id;
-        }
-        
-        if ((strstr(m_oc->oformat->name, "mp4") != NULL) ||
-            strstr(m_oc->oformat->name,"flv") != NULL)
-        {
-            if (m_audio_st && m_audio_st->codec->codec_id == AV_CODEC_ID_AAC)
-            {
-                m_absfc =  av_bitstream_filter_init("aac_adtstoasc");
-                if( m_absfc == NULL)
-                {
-                    result = 110;
-                }
-            }
-            if(m_video_st &&
-               (strstr(m_oc->oformat->name, "mp4") != NULL))
-            {
-                if(m_video_st->codec->codec_id == AV_CODEC_ID_H264 || m_video_st->codec->codec_id == AV_CODEC_ID_H265)
-                {
-                    char* szMp4box = "h264_mp4toannexb";
-                    if(m_video_st->codec->codec_id == AV_CODEC_ID_H265)
-                    szMp4box = "hevc_mp4toannexb";
-                    
-                    m_vbsfc =  av_bitstream_filter_init(szMp4box);
-                    if( m_vbsfc == NULL)
-                    {
-                        result = 111;
-                    }
-                }
-            }
-        }
-        //av_dump_format(m_oc, 0, szOutFileUrl, 1);
-    }
-    
-    void FFmpegH264Encoder::SetupVideo(std::string filename, int Width, int Height, int FPS, int GOB, int BitPerSecond, bool isHaveVideo, bool isHaveAudio)
+    void FFmpegH264Encoder::SetupVideo(std::string filename, int Width, int Height, int FPS, int GOB, int BitPerSecond)
     {
         m_filename = filename;
         m_AVIMOV_WIDTH=Width;	//Movie width

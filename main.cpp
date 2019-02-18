@@ -19,10 +19,10 @@ void * runEncoder(void * encoder)
 void onFrameMain(uint8_t * data, int height, int width)
 {
     // DEBUG
-    cv::Mat ret_img(height*3/2, width, CV_8UC1, data);
-    cv::cvtColor(ret_img, ret_img, CV_YUV2BGR_I420);
-    cv::imshow("RGBFrame", ret_img);
-    cv::waitKey(1);
+//    cv::Mat ret_img(height*3/2, width, CV_8UC1, data);
+//    cv::cvtColor(ret_img, ret_img, CV_YUV2BGR_I420);
+//    cv::imshow("RGBFrame", ret_img);
+//    cv::waitKey(20);
 
     encoder->SendNewFrame(data);
 }
@@ -50,7 +50,7 @@ int main(int argc, const char * argv[])
     << std::flush;
 
     encoder = new YEAH::FFmpegH264Encoder();
-    encoder->SetupVideo("rtmp://10.37.13.38:19888/live",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
+    encoder->SetupVideo("rtmp://10.37.13.38:19888/live/test",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
 //    server = new YEAH::LiveRTSPServer(encoder, UDPPort, HTTPTunnelPort);
 //
 //    pthread_attr_t attr1;
