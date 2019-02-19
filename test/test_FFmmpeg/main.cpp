@@ -1,5 +1,5 @@
-#include "include/FFmpegDecoder.h"
-#include "include/FFmpegH264Encoder.h"
+#include "FFmpegDecoder.h"
+#include "FFmpegH264Encoder.h"
 #include <opencv2/opencv.hpp>
 
 YEAH::FFmpegH264Encoder * encoder;
@@ -22,7 +22,7 @@ void onFrameMain(uint8_t * data, int height, int width)
 //    cv::Mat ret_img(height*3/2, width, CV_8UC1, data);
 //    cv::cvtColor(ret_img, ret_img, CV_YUV2BGR_I420);
 //    cv::imshow("RGBFrame", ret_img);
-//    cv::waitKey(1);
+//    cv::waitKey(20);
 
     encoder->SendNewFrame(data);
 }
@@ -36,7 +36,7 @@ int main(int argc, const char * argv[])
     if(argc==4)
         HTTPTunnelPort = atoi(argv[3]);
 
-    decoder = new YEAH::FFmpegDecoder("rtmp://tx.flv.huya.com/huyalive/94525224-2460685313-10568562945082523648-2789274524-10057-A-0-1");
+    decoder = new YEAH::FFmpegDecoder("rtmp://rtmp-source.live.panda.tv/live_panda/08ca241944b60f41e4505777c88b6ea6");
     decoder->initialize();
     decoder->setOnframeCallbackFunction(onFrameMain);
 
@@ -50,7 +50,7 @@ int main(int argc, const char * argv[])
     << std::flush;
 
     encoder = new YEAH::FFmpegH264Encoder();
-    encoder->SetupVideo("test.H264",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
+    encoder->SetupVideo("rtmp://10.37.13.38:19888/live/test",decoder->width,decoder->height,decoder->frameRate,decoder->GOP,decoder->bitrate);
 //    server = new YEAH::LiveRTSPServer(encoder, UDPPort, HTTPTunnelPort);
 //
 //    pthread_attr_t attr1;
