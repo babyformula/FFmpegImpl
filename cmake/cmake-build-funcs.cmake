@@ -1,13 +1,161 @@
-macro(ADD_OSX_FRAMEWORK fwname target)
-    find_library(FRAMEWORK_${fwname}
-    NAMES ${fwname}
-    PATHS ${CMAKE_OSX_SYSROOT}/System/Library
-    PATH_SUFFIXES Frameworks
-    NO_DEFAULT_PATH)
-    if( ${FRAMEWORK_${fwname}} STREQUAL FRAMEWORK_${fwname}-NOTFOUND)
-        MESSAGE(ERROR ": Framework ${fwname} not found")
+include(CMakeParseArguments)
+
+macro(ffmmpeg_buildapp name)
+  set(sources "")
+  set(dependencies "")
+  set(mode "unknown")
+  foreach(var ${ARGN})
+    if(var STREQUAL "SOURCES")
+      set(mode "SOURCES")
+    elseif(var STREQUAL "DEPENDENCIES")
+      set(mode "DEPENDENCIES")
     else()
-        TARGET_LINK_LIBRARIES(${target} PUBLIC "${FRAMEWORK_${fwname}}/${fwname}")
-        MESSAGE(STATUS "Framework ${fwname} found at ${FRAMEWORK_${fwname}}")
+      if(mode STREQUAL "SOURCES")
+        list(APPEND sources ${var})
+      elseif(mode STREQUAL "DEPENDENCIES")
+        list(APPEND dependencies ${var})
+      endif()
     endif()
-endmacro(ADD_OSX_FRAMEWORK)
+  endforeach()
+  
+  add_executable(${name} ${sources})
+  if(APPLE)
+    target_compile_options(${name} PUBLIC "-fobjc-arc")
+  endif()
+  target_link_libraries(${name} ${dependencies})
+endmacro()
+
+macro(ffmmpeg_build_test name_ headers_ sources_ deps_)
+  ffmmpeg_buildapp(${name_} SOURCES ${headers_} ${sources_} DEPENDENCIES ${deps_})
+endmacro()
+
+macro(ffmmpeg_make_group FILES_LIST)
+  foreach(FILE ${FILES_LIST})
+    #convert source file to absolute
+    get_filename_component(ABSOLUTE_PATH "${FILE}" ABSOLUTE)
+    # Get the directory of the absolute source file
+    get_filename_component(PARENT_DIR "${ABSOLUTE_PATH}" DIRECTORY)
+    # Remove common directory prefix to make the group
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
+    # Make sure we are using windows slashes
+    string(REPLACE "/" "\\" GROUP "${GROUP}")
+    # Group into "Source Files" and "Header Files"
+    if ("${FILE}" MATCHES ".*\\.c")
+      set(GROUP "Source Files${GROUP}")
+    elseif("${FILE}" MATCHES ".*\\.m")
+      set(GROUP "Source Files${GROUP}")
+    elseif("${FILE}" MATCHES ".*\\.h")
+      set(GROUP "Header Files${GROUP}")
+    endif()
+    source_group("${GROUP}" FILES "${FILE}")
+  endforeach()
+endmacro()
+
+macro(ffmmpeg_subdirlist result curdir)
+  file(GLOB children ${curdir}/*)
+  set(dirlist "")
+  foreach(child ${children})
+    if(IS_DIRECTORY ${child})
+      list(APPEND dirlist ${child})
+    endif()
+  endforeach()
+  set(${result} ${dirlist})
+endmacro()
+
+macro(ffmmpeg_make_group FILES_LIST)
+  foreach(FILE ${FILES_LIST})
+    #convert source file to absolute
+    get_filename_component(ABSOLUTE_PATH "${FILE}" ABSOLUTE)
+    # Get the directory of the absolute source file
+    get_filename_component(PARENT_DIR "${ABSOLUTE_PATH}" DIRECTORY)
+    # Remove common directory prefix to make the group
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
+    # Make sure we are using windows slashes
+    string(REPLACE "/" "\\" GROUP "${GROUP}")
+    # Group into "Source Files" and "Header Files"
+    if ("${FILE}" MATCHES ".*\\.c")
+      set(GROUP "Source Files${GROUP}")
+    elseif("${FILE}" MATCHES ".*\\.m")
+      set(GROUP "Source Files${GROUP}")
+    elseif("${FILE}" MATCHES ".*\\.h")
+      set(GROUP "Header Files${GROUP}")
+    endif()
+    source_group("${GROUP}" FILES "${FILE}")
+  endforeach()
+endmacro()
+
+macro(ffmmpeg_buildlibrary name type)
+  set(sources "")
+  set(dependencies "")
+  set(mode "unknown")
+  foreach(var ${ARGN})
+    if(var STREQUAL "SOURCES")
+      set(mode "SOURCES")
+    elseif(var STREQUAL "DEPENDENCIES")
+      set(mode "DEPENDENCIES")
+    else()
+      if(mode STREQUAL "SOURCES")
+        list(APPEND sources ${var})
+      elseif(mode STREQUAL "DEPENDENCIES")
+        list(APPEND dependencies ${var})
+      endif()
+    endif()
+  endforeach()
+  add_library(${name} ${type} ${sources})
+  if(APPLE)
+    target_compile_options(${name} PUBLIC "-fobjc-arc")
+  endif()
+  target_link_libraries(${name} ${dependencies})
+  
+  install(TARGETS ${name} 
+          CONFIGURATIONS
+          Debug
+          RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/Debug
+          LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/Debug
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/Debug)
+  install(TARGETS ${name} 
+          CONFIGURATIONS
+          Release
+          RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/Release
+          LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/Release
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/Release)
+endmacro()
+
+macro(FFMMPEG_OPTION variable description value)
+  set(__value ${value})
+  set(__condition "")
+  set(__varname "__value")
+  foreach(arg ${ARGN})
+    if(arg STREQUAL "IF" OR arg STREQUAL "if")
+      set(__varname "__condition")
+    else()
+      list(APPEND ${__varname} ${arg})
+    endif()
+  endforeach()
+  unset(__varname)
+  if(__condition STREQUAL "")
+    set(__condition 2 GREATER 1)
+  endif()
+
+  if(${__condition})
+    if(__value MATCHES ";")
+      if(${__value})
+        option(${variable} "${description}" ON)
+      else()
+        option(${variable} "${description}" OFF)
+      endif()
+    elseif(DEFINED ${__value})
+      if(${__value})
+        option(${variable} "${description}" ON)
+      else()
+        option(${variable} "${description}" OFF)
+      endif()
+    else()
+      option(${variable} "${description}" ${__value})
+    endif()
+  else()
+    unset(${variable} CACHE)
+  endif()
+  unset(__condition)
+  unset(__value)
+endmacro()

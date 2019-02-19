@@ -1,5 +1,5 @@
-#include "include/FFmpegDecoder.h"
-#include "include/FFmpegH264Encoder.h"
+#include "FFmpegDecoder.h"
+#include "FFmpegH264Encoder.h"
 #include <opencv2/opencv.hpp>
 
 YEAH::FFmpegH264Encoder * encoder;
@@ -36,7 +36,7 @@ int main(int argc, const char * argv[])
     if(argc==4)
         HTTPTunnelPort = atoi(argv[3]);
 
-    decoder = new YEAH::FFmpegDecoder("rtmp://rtmp-source.live.panda.tv/live_panda/3fd6544ac8cfaebdaaae4a762cd8ab6e");
+    decoder = new YEAH::FFmpegDecoder("rtmp://rtmp-source.live.panda.tv/live_panda/08ca241944b60f41e4505777c88b6ea6");
     decoder->initialize();
     decoder->setOnframeCallbackFunction(onFrameMain);
 
