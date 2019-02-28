@@ -1,9 +1,15 @@
 #include "FFmpegDecoder.h"
 #include "FFmpegH264Encoder.h"
 #include <opencv2/opencv.hpp>
+#include <torch/torch.h>
+#include <torch/script.h>
+
+#include <opencv2/opencv.hpp>
+
 
 YEAH::FFmpegH264Encoder * encoder;
 YEAH::FFmpegDecoder * decoder;
+std::shared_ptr<torch::jit::script::Module> module;
 
 int UDPPort;
 int HTTPTunnelPort;
@@ -19,10 +25,70 @@ void * runEncoder(void * encoder)
 void onFrameMain(uint8_t * data, int height, int width)
 {
     // DEBUG
-//    cv::Mat ret_img(height*3/2, width, CV_8UC1, data);
-//    cv::cvtColor(ret_img, ret_img, CV_YUV2BGR_I420);
-//    cv::imshow("RGBFrame", ret_img);
-//    cv::waitKey(20);
+    cv::Mat ret_img(height*3/2, width, CV_8UC1, data);
+    cv::cvtColor(ret_img, ret_img, CV_YUV2BGR_I420);
+    //cv::imshow("input_BGRFrame", ret_img);
+    
+    cv::cvtColor(ret_img, ret_img, cv::COLOR_BGR2RGB);
+    
+    int h_chop, w_chop;
+    h_chop = int(ret_img.rows/2) + 20;
+    w_chop = int(ret_img.cols/2) + 20;
+    
+    cv::Mat ret_slice;
+    cv::Rect patch_rect;
+    at::Tensor tensor_image, tensor_patch;
+    std::vector<at::Tensor> tensors;
+    
+    {
+        patch_rect = cv::Rect(0, 0, w_chop, h_chop);
+        ret_img(patch_rect).copyTo(ret_slice);
+        
+        tensor_patch = torch::from_blob(ret_slice.data, {1, 3, h_chop, w_chop}, at::kByte);
+        tensor_patch = tensor_patch.to(at::kFloat);
+        tensors.emplace_back(tensor_patch);
+    }
+    {
+        patch_rect = cv::Rect(ret_img.cols-w_chop, 0, w_chop, h_chop);
+        ret_img(patch_rect).copyTo(ret_slice);
+        
+        tensor_patch = torch::from_blob(ret_slice.data, {1, 3, h_chop, w_chop}, at::kByte);
+        tensor_patch = tensor_patch.to(at::kFloat);
+        tensors.emplace_back(tensor_patch);
+    }
+    {
+        patch_rect = cv::Rect(0, ret_img.rows-h_chop, w_chop, h_chop);
+        ret_img(patch_rect).copyTo(ret_slice);
+        
+        tensor_patch = torch::from_blob(ret_slice.data, {1, 3, h_chop, w_chop}, at::kByte);
+        tensor_patch = tensor_patch.to(at::kFloat);
+        tensors.emplace_back(tensor_patch);
+    }
+    {
+        patch_rect = cv::Rect(ret_img.cols-w_chop, ret_img.rows-h_chop, w_chop, h_chop);
+        ret_img(patch_rect).copyTo(ret_slice);
+        
+        tensor_patch = torch::from_blob(ret_slice.data, {1, 3, h_chop, w_chop}, at::kByte);
+        tensor_patch = tensor_patch.to(at::kFloat);
+        tensors.emplace_back(tensor_patch);
+    }
+    std::cout << tensors.size() << std::endl;
+    
+    tensor_image = torch::cat(tensors);
+    
+    std::cout << tensor_image.sizes() << std::endl;
+    
+    std::vector<torch::jit::IValue> inputs;
+//    inputs.push_back(tensor_image);
+    inputs.emplace_back(torch::ones({1, 3, 500, 284}));
+    at::Tensor output = module->forward(inputs).toTensor();
+    
+//    cv::Mat output_mat(cv::Size(2*ret_img.rows, 2*ret_img.cols), CV_8UC3, output.data<float>());
+    cv::Mat output_mat(cv::Size(2*284, 2*500), CV_8UC3, output.data<float>());
+    cv::cvtColor(output_mat, output_mat, cv::COLOR_RGB2BGR);
+    
+    cv::imshow("out_BGRFrame", output_mat);
+    cv::waitKey(20);
 
     encoder->SendNewFrame(data);
 }
@@ -35,8 +101,14 @@ int main(int argc, const char * argv[])
         UDPPort = atoi(argv[2]);
     if(argc==4)
         HTTPTunnelPort = atoi(argv[3]);
-
-    decoder = new YEAH::FFmpegDecoder("rtmp://rtmp-source.live.panda.tv/live_panda/08ca241944b60f41e4505777c88b6ea6");
+    
+    // Deserialize the ScriptModule from a file using torch::jit::load().
+    module = torch::jit::load("/Users/spectrum/Desktop/model.pt");
+    
+    assert(module != nullptr);
+    std::cout << "load model successfully! \n";
+    
+    decoder = new YEAH::FFmpegDecoder("/Users/spectrum/Downloads/momo/压缩前/momo4.flv");
     decoder->initialize();
     decoder->setOnframeCallbackFunction(onFrameMain);
 

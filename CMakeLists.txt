@@ -35,56 +35,48 @@ set(EXT_LIBS
 
 find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
 find_library(AVCODEC_LIBRARY avcodec)
-
-find_path(AVFORMAT_INCLUDE_DIR libavformat/avformat.h)
-find_library(AVFORMAT_LIBRARY avformat)
-
-find_path(AVUTIL_INCLUDE_DIR libavutil/avutil.h)
-find_library(AVUTIL_LIBRARY avutil)
-
-find_path(AVDEVICE_INCLUDE_DIR libavdevice/avdevice.h)
-find_library(AVDEVICE_LIBRARY avdevice)
-
-find_path(AVFILTER_INCLUDE_DIR libavfilter/avfilter.h)
-find_library(AVFILTER_LIBRARY avfilter)
-
-find_path(SWSCALE_INCLUDE_DIR libswscale/swscale.h)
-find_library(SWSCALE_LIBRARY swscale)
-
-find_path(X264_INCLUDE_DIR x264.h)
-find_library(X264_LIBRARY x264)
-
-find_path(X265_INCLUDE_DIR x265.h)
-find_library(X265_LIBRARY x265)
-
 message(STATUS "AVCODEC library status:")
 message(STATUS "    libraries: ${AVCODEC_LIBRARY}")
 message(STATUS "    include path: ${AVCODEC_INCLUDE_DIR}")
 
+find_path(AVFORMAT_INCLUDE_DIR libavformat/avformat.h)
+find_library(AVFORMAT_LIBRARY avformat)
 message(STATUS "AVFORMAT library status:")
 message(STATUS "    libraries: ${AVFORMAT_LIBRARY}")
 message(STATUS "    include path: ${AVFORMAT_INCLUDE_DIR}")
 
+find_path(AVUTIL_INCLUDE_DIR libavutil/avutil.h)
+find_library(AVUTIL_LIBRARY avutil)
 message(STATUS "AVUTIL library status:")
 message(STATUS "    libraries: ${AVUTIL_LIBRARY}")
 message(STATUS "    include path: ${AVUTIL_INCLUDE_DIR}")
 
+find_path(AVDEVICE_INCLUDE_DIR libavdevice/avdevice.h)
+find_library(AVDEVICE_LIBRARY avdevice)
 message(STATUS "AVDEVICE library status:")
 message(STATUS "    libraries: ${AVDEVICE_LIBRARY}")
 message(STATUS "    include path: ${AVDEVICE_INCLUDE_DIR}")
 
+find_path(AVFILTER_INCLUDE_DIR libavfilter/avfilter.h)
+find_library(AVFILTER_LIBRARY avfilter)
 message(STATUS "AVFILTER library status:")
 message(STATUS "    libraries: ${AVFILTER_LIBRARY}")
 message(STATUS "    include path: ${AVFILTER_INCLUDE_DIR}")
 
+find_path(SWSCALE_INCLUDE_DIR libswscale/swscale.h)
+find_library(SWSCALE_LIBRARY swscale)
 message(STATUS "SWSCALE library status:")
 message(STATUS "    libraries: ${SWSCALE_LIBRARY}")
 message(STATUS "    include path: ${SWSCALE_INCLUDE_DIR}")
 
+find_path(X264_INCLUDE_DIR x264.h)
+find_library(X264_LIBRARY x264)
 message(STATUS "X264 library status:")
 message(STATUS "    libraries: ${X264_LIBRARY}")
 message(STATUS "    include path: ${X264_INCLUDE_DIR}")
 
+find_path(X265_INCLUDE_DIR x265.h)
+find_library(X265_LIBRARY x265)
 message(STATUS "X265 library status:")
 message(STATUS "    libraries: ${X265_LIBRARY}")
 message(STATUS "    include path: ${X265_INCLUDE_DIR}")
@@ -106,6 +98,12 @@ install(FILES ${FFMMPEG_ALL_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include
 list(APPEND THIRD_PARTY_DEPENDENCIES "ffmmpeg")
 
 find_package (Threads)
+
+find_package (Torch REQUIRED)
+message(STATUS "Torch library status:")
+message(STATUS "    libraries: ${TORCH_LIBRARIES}")
+message(STATUS "    include path: ${TORCH_INCLUDE_DIR}")
+
 list(APPEND THIRD_PARTY_DEPENDENCIES ${OpenCV_LIBS})
 list(APPEND THIRD_PARTY_DEPENDENCIES ${AVCODEC_LIBRARY})
 list(APPEND THIRD_PARTY_DEPENDENCIES ${AVFORMAT_LIBRARY})
@@ -114,6 +112,7 @@ list(APPEND THIRD_PARTY_DEPENDENCIES ${AVDEVICE_LIBRARY})
 list(APPEND THIRD_PARTY_DEPENDENCIES ${AVFILTER_LIBRARY})
 list(APPEND THIRD_PARTY_DEPENDENCIES ${SWSCALE_LIBRARY})
 list(APPEND THIRD_PARTY_DEPENDENCIES ${CMAKE_THREAD_LIBS_INIT})
+list(APPEND THIRD_PARTY_DEPENDENCIES ${TORCH_LIBRARIES})
 
 include_directories(${OpenCV_INCLUDE_DIRS}
         ${AVCODEC_INCLUDE_DIR}
@@ -121,7 +120,8 @@ include_directories(${OpenCV_INCLUDE_DIRS}
         ${AVUTIL_INCLUDE_DIR}
         ${AVDEVICE_INCLUDE_DIR}
         ${AVFILTER_INCLUDE_DIR}
-        ${SWSCALE_INCLUDE_DIR})
+        ${SWSCALE_INCLUDE_DIR}
+        ${TORCH_INCLUDE_DIR})
 
 ffmmpeg_subdirlist(test_subdirs "test")
 foreach(subdir ${test_subdirs})
